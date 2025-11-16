@@ -28,26 +28,35 @@
  */
 
 #include "point_cloud.h"
-#include <ros/assert.h>
+#include <cassert>
 
-#include <OgreBillboard.h>
-#include <OgreBillboardSet.h>
-#include <OgreCamera.h>
-#include <OgreManualObject.h>
-#include <OgreMaterialManager.h>
-#include <OgreQuaternion.h>
-#include <OgreSceneManager.h>
-#include <OgreSceneNode.h>
-#include <OgreSharedPtr.h>
-#include <OgreTechnique.h>
-#include <OgreTexture.h>
-#include <OgreTextureManager.h>
-#include <OgreVector3.h>
+#include <OGRE/OgreBillboard.h>
+#include <OGRE/OgreBillboardSet.h>
+#include <OGRE/OgreCamera.h>
+#include <OGRE/OgreManualObject.h>
+#include <OGRE/OgreMaterialManager.h>
+#include <OGRE/OgreQuaternion.h>
+#include <OGRE/OgreSceneManager.h>
+#include <OGRE/OgreSceneNode.h>
+#include <OGRE/OgreSharedPtr.h>
+#include <OGRE/OgreTechnique.h>
+#include <OGRE/OgreTexture.h>
+#include <OGRE/OgreTextureManager.h>
+#include <OGRE/OgreVector3.h>
 
 #include <sstream>
 
-#include <rviz/ogre_helpers/custom_parameter_indices.h>
-#include <rviz/selection/forwards.h>
+#include <rviz_rendering/custom_parameter_indices.hpp>
+#include <rviz_common/interaction/forwards.hpp>
+#include <rviz_common/logging.hpp>
+
+#define SIZE_PARAMETER 1
+#define ALPHA_PARAMETER 2
+#define HIGHLIGHT_PARAMETER 3
+#define PICK_COLOR_PARAMETER 4
+#define NORMAL_PARAMETER 5
+#define UP_PARAMETER 6
+#define AUTO_SIZE_PARAMETER 7
 
 #define VERTEX_BUFFER_CAPACITY (36 * 1024 * 10)
 
@@ -417,8 +426,7 @@ void PointCloud::setRenderMode(RenderMode mode) {
     geom_support_changed = true;
     current_mode_supports_geometry_shader_ = false;
 
-    ROS_ERROR("No techniques available for material [%s]",
-              current_material_->getName().c_str());
+    RVIZ_COMMON_LOG_ERROR("No techniques available for material");
   }
 
   if (geom_support_changed) {
@@ -428,7 +436,7 @@ void PointCloud::setRenderMode(RenderMode mode) {
   V_PointCloudRenderable::iterator it = renderables_.begin();
   V_PointCloudRenderable::iterator end = renderables_.end();
   for (; it != end; ++it) {
-    (*it)->setMaterial(current_material_->getName());
+    (*it)->setMaterial(current_material_);
   }
 
   regenerateAll();
@@ -604,11 +612,11 @@ void PointCloud::addPoints(Point *points, uint32_t num_points) {
     // create a new one.
     while (!rend || current_vertex_count >= buffer_size) {
       if (rend) {
-        ROS_ASSERT(current_vertex_count == buffer_size);
+        assert(current_vertex_count == buffer_size);
 
         op->vertexData->vertexCount =
             rend->getBuffer()->getNumVertices() - op->vertexData->vertexStart;
-        ROS_ASSERT(op->vertexData->vertexCount + op->vertexData->vertexStart <=
+        assert(op->vertexData->vertexCount + op->vertexData->vertexStart <=
                    rend->getBuffer()->getNumVertices());
         vbuf->unlock();
         rend->setBoundingBox(aabb);
@@ -686,7 +694,7 @@ void PointCloud::addPoints(Point *points, uint32_t num_points) {
         *fptr++ = radius;
       }
 
-      ROS_ASSERT((uint8_t *)fptr <=
+      assert((uint8_t *)fptr <=
                  (uint8_t *)vdata +
                      rend->getBuffer()->getNumVertices() * vertex_size);
     }
@@ -696,7 +704,7 @@ void PointCloud::addPoints(Point *points, uint32_t num_points) {
       current_vertex_count - op->vertexData->vertexStart;
   rend->setBoundingBox(aabb);
   bounding_box_.merge(aabb);
-  ROS_ASSERT(op->vertexData->vertexCount + op->vertexData->vertexStart <=
+  assert(op->vertexData->vertexCount + op->vertexData->vertexStart <=
              rend->getBuffer()->getNumVertices());
 
   vbuf->unlock();
@@ -713,7 +721,7 @@ void PointCloud::addPoints(Point *points, uint32_t num_points) {
 void PointCloud::popPoints(uint32_t num_points) {
   uint32_t vpp = getVerticesPerPoint();
 
-  ROS_ASSERT(num_points <= point_count_);
+  assert(num_points <= point_count_);
   points_.erase(points_.begin(), points_.begin() + num_points);
 
   point_count_ -= num_points;
@@ -738,7 +746,7 @@ void PointCloud::popPoints(uint32_t num_points) {
       renderables_.push_back(rend);
     }
   }
-  ROS_ASSERT(popped_count == num_points * vpp);
+  assert(popped_count == num_points * vpp);
 
   // reset bounds
   bounding_box_.setNull();
@@ -851,14 +859,14 @@ void PointCloud::setPickColor(const Ogre::ColourValue &color) {
     (*it)->setCustomParameter(PICK_COLOR_PARAMETER, pick_col);
   }
   getUserObjectBindings().setUserAny("pick_handle",
-                                     Ogre::Any(rviz::colorToHandle(color)));
+                                     Ogre::Any(rviz_common::interaction::colorToHandle(color)));
 }
 
 PointCloudRenderablePtr PointCloud::createRenderable(int num_points) {
   PointCloudRenderablePtr rend(new PointCloudRenderable(
       this, num_points, !current_mode_supports_geometry_shader_,
       current_mode_has_normal_, current_mode_has_radius_));
-  rend->setMaterial(current_material_->getName());
+  rend->setMaterial(current_material_);
   Ogre::Vector4 size(width_, height_, depth_, 0.0f);
   Ogre::Vector4 alpha(alpha_, 0.0f, 0.0f, 0.0f);
   Ogre::Vector4 highlight(0.0f, 0.0f, 0.0f, 0.0f);

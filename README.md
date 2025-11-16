@@ -1,8 +1,13 @@
 # Emoji Cloud Plugins
 
-A ROS1 RViz plugin to display emojis in LaserScans and PointClouds.
+A ROS2 RViz plugin to display emojis in LaserScans and PointClouds.
 
 <img src="https://user-images.githubusercontent.com/45683974/169244539-93c6394a-f624-4134-9c9e-21ab73bb315c.gif" width="900" height="500"/>
+
+## Compatibility
+
+- ROS2 Humble Hawksbill
+- RViz2
 
 ## Usage
 
@@ -14,7 +19,7 @@ For instance, one can use ðŸ˜Ž to identify a very accurate pointcloud, or use ðŸ
 
 * To build this package independently:
 
-	  catkin build emojicloud_plugin
+	  colcon build --packages-select emojicloud_plugin
 
 ## Tutorial
 
@@ -27,6 +32,10 @@ Following are the instructions of adding your very own emoji:
 	  ./helper_script.sh
 
 	Build your package once you've added your set of emojis.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for detailed changes.
 
 ## Credits
 

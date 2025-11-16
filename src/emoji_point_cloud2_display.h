@@ -32,25 +32,25 @@
 
 #include <boost/circular_buffer.hpp>
 
-#include <rviz/message_filter_display.h>
-#include <sensor_msgs/PointCloud2.h>
+#include <rviz_common/message_filter_display.hpp>
+#include <sensor_msgs/msg/point_cloud2.hpp>
+#include <rviz_common/properties/int_property.hpp>
 
 namespace Ogre {
 class SceneNode;
 }
 
-namespace rviz {
+namespace rviz_common {
 class ColorProperty;
 class FloatProperty;
-class IntProperty;
-} // namespace rviz
+} // namespace rviz_common
 
 namespace emojicloud_plugin {
 
 class PointCloudCommon;
 
 class EmojiPointCloud2Display
-    : public rviz::MessageFilterDisplay<sensor_msgs::PointCloud2> {
+    : public rviz_common::MessageFilterDisplay<sensor_msgs::msg::PointCloud2> {
   Q_OBJECT
 public:
   EmojiPointCloud2Display();
@@ -68,9 +68,9 @@ protected:
   virtual void onInitialize();
 
   /** @brief Process a single message.  Overridden from MessageFilterDisplay. */
-  virtual void processMessage(const sensor_msgs::PointCloud2ConstPtr &cloud);
+  virtual void processMessage(sensor_msgs::msg::PointCloud2::ConstSharedPtr cloud);
 
-  rviz::IntProperty *queue_size_property_;
+  rviz_common::properties::IntProperty *queue_size_property_;
 
   std::shared_ptr<PointCloudCommon> point_cloud_common_;
 };

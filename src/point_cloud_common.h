@@ -30,10 +30,10 @@
 #ifndef POINT_CLOUD_COMMON_H
 #define POINT_CLOUD_COMMON_H
 
-#ifndef Q_MOC_RUN // See: https://bugreports.qt-project.org/browse/QTBUG-22829
 #include <deque>
 #include <queue>
 #include <vector>
+#include <list>
 
 #include <QList>
 #include <QObject>
@@ -42,39 +42,60 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/recursive_mutex.hpp>
 
-#include <ros/callback_queue.h>
-#include <ros/spinner.h>
+#include <rclcpp/executor.hpp>
+#include <rclcpp/node.hpp>
 
-#include <message_filters/time_sequencer.h>
+#include <message_filters/time_sequencer.hpp>
 
 #include <pluginlib/class_loader.hpp>
 
-#include <sensor_msgs/PointCloud.h>
-#include <sensor_msgs/PointCloud2.h>
+#include <sensor_msgs/msg/point_cloud2.hpp>
 
-#include <rviz/default_plugin/point_cloud_transformer.h>
-#include <rviz/properties/color_property.h>
-#include <rviz/selection/forwards.h>
-#include <rviz/selection/selection_manager.h>
+#include <rviz_default_plugins/displays/pointcloud/point_cloud_transformer.hpp>
 
-#include "point_cloud.h"
-#endif
-
-namespace rviz {
+// Forward declarations for types needed by moc and consumers
+namespace rviz_common {
+namespace properties {
+class Property;
 class BoolProperty;
+class FloatProperty;
+class EnumProperty;
+class ColorProperty;
+class VectorProperty;
+class StatusProperty;
+}  // namespace properties
+namespace interaction {
+struct Picked;
+using S_uint64 = std::set<uint64_t>; // convenience
+}  // namespace interaction
 class Display;
 class DisplayContext;
-class EnumProperty;
-class FloatProperty;
-class PointCloudTransformer;
-} // namespace rviz
+}  // namespace rviz_common
+
+#include <rviz_common/interaction/forwards.hpp>
+#include <rviz_common/interaction/selection_manager.hpp>
+#include <rviz_common/display.hpp>
+#include <rviz_common/properties/property.hpp>
+#include <rviz_common/properties/vector_property.hpp>
+#include <rviz_common/properties/float_property.hpp>
+#include <rviz_common/properties/enum_property.hpp>
+#include <rviz_common/properties/bool_property.hpp>
+#include <rviz_common/properties/int_property.hpp>
+#include <rviz_common/properties/status_property.hpp>
+
+typedef std::set<uint64_t> S_uint64;
+typedef std::vector<Ogre::AxisAlignedBox> V_AABB;
+
+#include "point_cloud.h"
+
+typedef sensor_msgs::msg::PointCloud2::ConstSharedPtr PointCloud2ConstPtr;
 
 namespace emojicloud_plugin {
 class PointCloudSelectionHandler;
 struct IndexAndMessage;
 typedef boost::shared_ptr<PointCloudSelectionHandler>
     PointCloudSelectionHandlerPtr;
-typedef boost::shared_ptr<rviz::PointCloudTransformer> PointCloudTransformerPtr;
+typedef boost::shared_ptr<rviz_default_plugins::PointCloudTransformer> PointCloudTransformerPtr;
 typedef std::vector<std::string> V_string;
 
 /**
@@ -96,11 +117,11 @@ public:
     // clear the point cloud, but keep selection handler around
     void clear();
 
-    ros::Time receive_time_;
+    rclcpp::Time receive_time_;
 
     Ogre::SceneManager *manager_;
 
-    sensor_msgs::PointCloud2ConstPtr message_;
+    sensor_msgs::msg::PointCloud2::ConstSharedPtr message_;
 
     Ogre::SceneNode *scene_node_;
     boost::shared_ptr<PointCloud> cloud_;
@@ -117,33 +138,31 @@ public:
   typedef std::vector<CloudInfoPtr> V_CloudInfo;
   typedef std::queue<CloudInfoPtr> Q_CloudInfo;
   typedef std::list<CloudInfoPtr> L_CloudInfo;
+  typedef std::map<rviz_common::interaction::SelectionHandler::Handles, rviz_common::interaction::SelectionHandler::SelectionBox> M_HandleToBox;
 
-  PointCloudCommon(rviz::Display *display);
+  PointCloudCommon(rviz_common::Display *display);
   ~PointCloudCommon();
 
-  void initialize(rviz::DisplayContext *context, Ogre::SceneNode *scene_node);
+  void initialize(rviz_common::DisplayContext *context, Ogre::SceneNode *scene_node);
 
   void fixedFrameChanged();
   void reset();
   void update(float wall_dt, float ros_dt);
 
-  void addMessage(const sensor_msgs::PointCloudConstPtr &cloud);
-  void addMessage(const sensor_msgs::PointCloud2ConstPtr &cloud);
+  void addMessage(const sensor_msgs::msg::PointCloud2::ConstSharedPtr &cloud);
 
-  ros::CallbackQueueInterface *getCallbackQueue() { return &cbqueue_; }
-
-  rviz::Display *getDisplay() { return display_; }
+  rviz_common::Display *getDisplay() { return display_; }
 
   bool auto_size_;
 
-  rviz::BoolProperty *selectable_property_;
-  rviz::FloatProperty *point_world_size_property_;
-  rviz::FloatProperty *point_pixel_size_property_;
-  rviz::FloatProperty *alpha_property_;
-  rviz::EnumProperty *xyz_transformer_property_;
-  rviz::EnumProperty *color_transformer_property_;
-  rviz::EnumProperty *style_property_;
-  rviz::FloatProperty *decay_time_property_;
+  rviz_common::properties::BoolProperty *selectable_property_;
+  rviz_common::properties::FloatProperty *point_world_size_property_;
+  rviz_common::properties::FloatProperty *point_pixel_size_property_;
+  rviz_common::properties::FloatProperty *alpha_property_;
+  rviz_common::properties::EnumProperty *xyz_transformer_property_;
+  rviz_common::properties::EnumProperty *color_transformer_property_;
+  rviz_common::properties::EnumProperty *style_property_;
+  rviz_common::properties::FloatProperty *decay_time_property_;
 
   void setAutoSize(bool auto_size);
 
@@ -157,8 +176,8 @@ private Q_SLOTS:
   void updateAlpha();
   void updateXyzTransformer();
   void updateColorTransformer();
-  void setXyzTransformerOptions(rviz::EnumProperty *prop);
-  void setColorTransformerOptions(rviz::EnumProperty *prop);
+  void setXyzTransformerOptions(rviz_common::properties::EnumProperty *prop);
+  void setColorTransformerOptions(rviz_common::properties::EnumProperty *prop);
 
 private:
   /**
@@ -168,39 +187,27 @@ private:
   bool transformCloud(const CloudInfoPtr &cloud,
                       bool fully_update_transformers);
 
-  void processMessage(const sensor_msgs::PointCloud2ConstPtr &cloud);
+  void processMessage(const sensor_msgs::msg::PointCloud2::ConstSharedPtr &cloud);
   void updateStatus();
 
   PointCloudTransformerPtr
-  getXYZTransformer(const sensor_msgs::PointCloud2ConstPtr &cloud);
+  getXYZTransformer(const sensor_msgs::msg::PointCloud2::ConstSharedPtr &cloud);
   PointCloudTransformerPtr
-  getColorTransformer(const sensor_msgs::PointCloud2ConstPtr &cloud);
-  void updateTransformers(const sensor_msgs::PointCloud2ConstPtr &cloud);
+  getColorTransformer(const sensor_msgs::msg::PointCloud2::ConstSharedPtr &cloud);
+  void updateTransformers(const sensor_msgs::msg::PointCloud2::ConstSharedPtr &cloud);
   void retransform();
   void onTransformerOptions(V_string &ops, uint32_t mask);
 
   void loadTransformers();
 
   float getSelectionBoxSize();
-  void setPropertiesHidden(const QList<rviz::Property *> &props, bool hide);
-  void fillTransformerOptions(rviz::EnumProperty *prop, uint32_t mask);
-
-  ros::AsyncSpinner spinner_;
-  ros::CallbackQueue cbqueue_;
-
-  D_CloudInfo cloud_infos_;
-
-  Ogre::SceneNode *scene_node_;
-
-  V_CloudInfo new_cloud_infos_;
-  boost::mutex new_clouds_mutex_;
-
-  L_CloudInfo obsolete_cloud_infos_;
+  void setPropertiesHidden(const QList<rviz_common::properties::Property *> &props, bool hide);
+  void fillTransformerOptions(rviz_common::properties::EnumProperty *prop, uint32_t mask);
 
   struct TransformerInfo {
     PointCloudTransformerPtr transformer;
-    QList<rviz::Property *> xyz_props;
-    QList<rviz::Property *> color_props;
+    QList<rviz_common::properties::Property *> xyz_props;
+    QList<rviz_common::properties::Property *> color_props;
 
     std::string readable_name;
     std::string lookup_name;
@@ -213,26 +220,32 @@ private:
   bool new_color_transformer_;
   bool needs_retransform_;
 
-  pluginlib::ClassLoader<rviz::PointCloudTransformer>
+  pluginlib::ClassLoader<rviz_default_plugins::PointCloudTransformer>
       *transformer_class_loader_;
 
-  rviz::Display *display_;
-  rviz::DisplayContext *context_;
+  rviz_common::Display *display_;
+  rviz_common::DisplayContext *context_;
+
+  D_CloudInfo cloud_infos_;
+  D_CloudInfo new_cloud_infos_;
+  L_CloudInfo obsolete_cloud_infos_;
+  boost::mutex new_clouds_mutex_;
+  Ogre::SceneNode *scene_node_;
 
   friend class PointCloudSelectionHandler;
 };
 
-class PointCloudSelectionHandler : public rviz::SelectionHandler {
+class PointCloudSelectionHandler : public rviz_common::interaction::SelectionHandler {
 public:
   PointCloudSelectionHandler(float box_size,
                              PointCloudCommon::CloudInfo *cloud_info,
-                             rviz::DisplayContext *context);
+                             rviz_common::DisplayContext *context);
   virtual ~PointCloudSelectionHandler();
 
-  virtual void createProperties(const rviz::Picked &obj,
-                                rviz::Property *parent_property);
-  virtual void destroyProperties(const rviz::Picked &obj,
-                                 rviz::Property *parent_property);
+  virtual void createProperties(const rviz_common::interaction::Picked &obj,
+                                rviz_common::properties::Property *parent_property);
+  virtual void destroyProperties(const rviz_common::interaction::Picked &obj,
+                                 rviz_common::properties::Property *parent_property);
 
   virtual bool needsAdditionalRenderPass(uint32_t pass) {
     if (pass < 2) {
@@ -245,10 +258,10 @@ public:
   virtual void preRenderPass(uint32_t pass);
   virtual void postRenderPass(uint32_t pass);
 
-  virtual void onSelect(const rviz::Picked &obj);
-  virtual void onDeselect(const rviz::Picked &obj);
+  virtual void onSelect(const rviz_common::interaction::Picked &obj);
+  virtual void onDeselect(const rviz_common::interaction::Picked &obj);
 
-  virtual void getAABBs(const rviz::Picked &obj, rviz::V_AABB &aabbs);
+  virtual void getAABBs(const rviz_common::interaction::Picked &obj, V_AABB &aabbs);
 
   void setBoxSize(float size) { box_size_ = size; }
 
@@ -256,10 +269,11 @@ public:
 
 private:
   PointCloudCommon::CloudInfo *cloud_info_;
-  QHash<IndexAndMessage, rviz::Property *> property_hash_;
+  QHash<IndexAndMessage, rviz_common::properties::Property *> property_hash_;
   float box_size_;
+  M_HandleToBox boxes_;
 };
 
 } // namespace emojicloud_plugin
 
-#endif // RVIZ_POINT_CLOUD_COMMON_H
+#endif // POINT_CLOUD_COMMON_H

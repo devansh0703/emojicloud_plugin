@@ -40,16 +40,15 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif
 
-#include <OgreAxisAlignedBox.h>
-#include <OgreColourValue.h>
-#include <OgreHardwareBufferManager.h>
-#include <OgreMaterial.h>
-#include <OgreMovableObject.h>
-#include <OgreRoot.h>
-#include <OgreSharedPtr.h>
-#include <OgreSimpleRenderable.h>
-#include <OgreString.h>
-#include <OgreVector3.h>
+#include <OGRE/OgreAxisAlignedBox.h>
+#include <OGRE/OgreColourValue.h>
+#include <OGRE/OgreHardwareBufferManager.h>
+#include <OGRE/OgreMaterial.h>
+#include <OGRE/OgreMovableObject.h>
+#include <OGRE/OgreRoot.h>
+#include <OGRE/OgreSharedPtr.h>
+#include <OGRE/OgreSimpleRenderable.h>
+#include <OGRE/OgreString.h>
 
 #ifndef _WIN32
 #pragma GCC diagnostic pop

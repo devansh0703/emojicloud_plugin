@@ -30,9 +30,10 @@
 #ifndef EMOJI_LASER_SCAN_DISPLAY_H
 #define EMOJI_LASER_SCAN_DISPLAY_H
 
-#include <sensor_msgs/LaserScan.h>
+#include <tf2/time.h>
 
-#include <rviz/message_filter_display.h>
+#include <sensor_msgs/msg/laser_scan.hpp>
+#include <rviz_common/message_filter_display.hpp>
 
 namespace Ogre {
 class SceneNode;
@@ -42,7 +43,7 @@ namespace laser_geometry {
 class LaserProjection;
 }
 
-namespace rviz {
+namespace rviz_common {
 class IntProperty;
 }
 
@@ -52,7 +53,7 @@ class PointCloudCommon;
 
 /** @brief Visualizes a laser scan, received as a sensor_msgs::LaserScan. */
 class EmojiLaserScanDisplay
-    : public rviz::MessageFilterDisplay<sensor_msgs::LaserScan> {
+    : public rviz_common::MessageFilterDisplay<sensor_msgs::msg::LaserScan> {
   Q_OBJECT
 public:
   EmojiLaserScanDisplay();
@@ -67,12 +68,12 @@ protected:
   void onInitialize() override;
 
   /** @brief Process a single message.  Overridden from MessageFilterDisplay. */
-  void processMessage(const sensor_msgs::LaserScanConstPtr &scan) override;
+  void processMessage(sensor_msgs::msg::LaserScan::ConstSharedPtr scan);
 
   PointCloudCommon *point_cloud_common_;
 
   laser_geometry::LaserProjection *projector_;
-  ros::Duration filter_tolerance_;
+  tf2::Duration filter_tolerance_;
 };
 
 } // namespace emojicloud_plugin

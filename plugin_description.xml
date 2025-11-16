@@ -3,7 +3,7 @@
 
 	<class name="emojicloud_plugin/EmojiLaserScan"
 			type="emojicloud_plugin::EmojiLaserScanDisplay"
-			base_class_type="rviz::Display">
+			base_class_type="rviz_common::Display">
 		<description>
 			Displays laser scans as emojis.
 		</description>
@@ -13,7 +13,7 @@
 
   <class name="emojicloud_plugin/EmojiPointCloud2Display"
          type="emojicloud_plugin::EmojiPointCloud2Display"
-         base_class_type="rviz::Display">
+         base_class_type="rviz_common::Display">
     <description>
       Displays point clouds as emojis.
     </description>

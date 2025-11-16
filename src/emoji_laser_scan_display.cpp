@@ -30,23 +30,22 @@
 #include <OGRE/OgreSceneManager.h>
 #include <OGRE/OgreSceneNode.h>
 
-#include <ros/time.h>
+#include <rclcpp/time.hpp>
 
-#include <laser_geometry/laser_geometry.h>
+#include <laser_geometry/laser_geometry.hpp>
 
 #include "point_cloud.h"
 #include "point_cloud_common.h"
-#include <rviz/display_context.h>
-#include <rviz/frame_manager.h>
-#include <rviz/properties/int_property.h>
-#include <rviz/validate_floats.h>
+#include <rviz_default_plugins/transformation/tf_wrapper.hpp>
 
 #include "emoji_laser_scan_display.h"
+
+typedef rviz_common::MessageFilterDisplay<sensor_msgs::msg::LaserScan> MFDClass;
 
 namespace emojicloud_plugin {
 EmojiLaserScanDisplay::EmojiLaserScanDisplay()
     : point_cloud_common_(new PointCloudCommon(this)),
-      projector_(new laser_geometry::LaserProjection()) {}
+      projector_(new laser_geometry::LaserProjection()), filter_tolerance_(tf2::durationFromSec(0.0)) {}
 
 EmojiLaserScanDisplay::~EmojiLaserScanDisplay() {
   delete point_cloud_common_;
@@ -54,45 +53,45 @@ EmojiLaserScanDisplay::~EmojiLaserScanDisplay() {
 }
 
 void EmojiLaserScanDisplay::onInitialize() {
-  // Use the threaded queue for processing of incoming messages
-  update_nh_.setCallbackQueue(context_->getThreadedQueue());
-
   MFDClass::onInitialize();
   point_cloud_common_->initialize(context_, scene_node_);
 
   static bool resource_locations_added = false;
   if (!resource_locations_added) {
     const std::string my_path =
-        ros::package::getPath(ROS_PACKAGE_NAME) + "/shaders";
+        ament_index_cpp::get_package_share_directory("emojicloud_plugin") + "/shaders";
     Ogre::ResourceGroupManager::getSingleton().addResourceLocation(
-        my_path, "FileSystem", ROS_PACKAGE_NAME);
+        my_path, "FileSystem", "emojicloud_plugin");
     Ogre::ResourceGroupManager::getSingleton().initialiseAllResourceGroups();
     resource_locations_added = true;
   }
 }
 
 void EmojiLaserScanDisplay::processMessage(
-    const sensor_msgs::LaserScanConstPtr &scan) {
-  sensor_msgs::PointCloud2Ptr cloud(new sensor_msgs::PointCloud2);
+    sensor_msgs::msg::LaserScan::ConstSharedPtr scan) {
+  auto cloud = std::make_shared<sensor_msgs::msg::PointCloud2>();
 
   // Compute tolerance necessary for this scan
-  ros::Duration tolerance(scan->time_increment * scan->ranges.size());
+  tf2::Duration tolerance = tf2::durationFromSec(static_cast<double>(scan->time_increment) * scan->ranges.size());
   if (tolerance > filter_tolerance_) {
     filter_tolerance_ = tolerance;
     tf_filter_->setTolerance(filter_tolerance_);
   }
 
   try {
-    auto tf = context_->getTF2BufferPtr();
+    auto tf_wrapper = std::dynamic_pointer_cast<rviz_default_plugins::transformation::TFWrapper>(
+      context_->getFrameManager()->getConnector().lock());
 
-    projector_->transformLaserScanToPointCloud(
-        fixed_frame_.toStdString(), *scan, *cloud, *tf, -1.0,
-        laser_geometry::channel_option::Intensity);
+    if (tf_wrapper) {
+      projector_->transformLaserScanToPointCloud(
+          fixed_frame_.toStdString(), *scan, *cloud, *tf_wrapper->getBuffer(), -1.0,
+          laser_geometry::channel_option::Intensity);
+    } else {
+      RVIZ_COMMON_LOG_ERROR("Failed to get TF wrapper");
+      return;
+    }
   } catch (tf2::TransformException &e) {
-    ROS_DEBUG("LaserScan [%s]: failed to transform scan: %s.  This message "
-              "should not repeat (tolerance "
-              "should now be set on our tf2::MessageFilter).",
-              qPrintable(getName()), e.what());
+    RVIZ_COMMON_LOG_DEBUG(QString("LaserScan [%1]: failed to transform scan: %2. This message should not repeat (tolerance should now be set on our tf2::MessageFilter).").arg(this->getName()).arg(e.what()).toStdString());
     return;
   }
 
@@ -111,4 +110,4 @@ void EmojiLaserScanDisplay::reset() {
 } // namespace emojicloud_plugin
 
 #include <pluginlib/class_list_macros.hpp>
-PLUGINLIB_EXPORT_CLASS(emojicloud_plugin::EmojiLaserScanDisplay, rviz::Display)
+PLUGINLIB_EXPORT_CLASS(emojicloud_plugin::EmojiLaserScanDisplay, rviz_common::Display)
